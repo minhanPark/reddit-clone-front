@@ -7,6 +7,7 @@ import NavBar from "../components/NavBar";
 
 function MyApp({ Component, pageProps }: AppProps) {
   console.log("dev 브랜치");
+  console.log("dev dev");
   Axios.defaults.baseURL = process.env.NEXT_PUBLIC_BASE_URL + "/api";
   Axios.defaults.withCredentials = true;
 
