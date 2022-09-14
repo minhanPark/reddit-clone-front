@@ -6,6 +6,7 @@ import cls from "classnames";
 import { Sub } from "../../types";
 import Image from "next/image";
 import { useAuthState } from "../../context/auth";
+import Sidebar from "../../components/Sidebar";
 
 const SubPage = () => {
   const [ownSub, setOwnSub] = useState(false);
@@ -107,7 +108,10 @@ const SubPage = () => {
               </div>
             </div>
           </div>
-          <div className="flex max-w-5xl px-4 pt-5 mx-auto"></div>
+          <div className="flex max-w-5xl px-4 pt-5 mx-auto">
+            <div className="w-full md:mr-3 md:w-8/12"></div>
+            <Sidebar sub={sub} />
+          </div>
         </>
       )}
     </>
