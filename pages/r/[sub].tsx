@@ -1,12 +1,15 @@
 import axios from "axios";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import cls from "classnames";
 import { Sub } from "../../types";
 import Image from "next/image";
+import { useAuthState } from "../../context/auth";
 
 const SubPage = () => {
+  const [ownSub, setOwnSub] = useState(false);
+  const { authenticated, user } = useAuthState();
   const fetcher = async (url: string) => {
     try {
       const res = await axios.get(url);
@@ -21,13 +24,50 @@ const SubPage = () => {
     subName ? `/subs/${subName}` : null,
     fetcher
   );
-  console.log({ sub });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files === null) return;
+    const file = event.target.files[0];
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", fileInputRef.current!.name);
+
+    try {
+      await axios.post(`/subs/${sub.name}/upload`, formData, {
+        headers: { "Context-Type": "multipart/form-data" },
+      });
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+  const openFileInput = (type: string) => {
+    if (!ownSub) return;
+    const fileInput = fileInputRef.current;
+    if (fileInput) {
+      fileInput.name = type;
+      fileInput.click();
+    }
+  };
+  useEffect(() => {
+    if (!sub) return;
+    setOwnSub(authenticated && user?.username === sub.username);
+  }, [sub]);
   return (
     <>
       {sub && (
         <>
           <div>
-            <div className="bg-gray-400">
+            <input
+              type="file"
+              hidden={true}
+              ref={fileInputRef}
+              onChange={uploadImage}
+            />
+            <div
+              className="bg-gray-400"
+              onClick={() => openFileInput("banner")}
+            >
               {sub.bannerUrl ? (
                 <div
                   className="h-56"
@@ -51,8 +91,8 @@ const SubPage = () => {
                       alt="커뮤니티 이미지"
                       width={70}
                       height={70}
-                      onClick={() => {}}
                       className="rounded-full"
+                      onClick={() => openFileInput("image")}
                     />
                   )}
                 </div>
