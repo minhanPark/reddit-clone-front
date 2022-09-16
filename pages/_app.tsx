@@ -4,10 +4,11 @@ import Axios from "axios";
 import { AuthProvider } from "../context/auth";
 import { useRouter } from "next/router";
 import NavBar from "../components/NavBar";
+import { SWRConfig } from "swr";
+import axios from "axios";
+import Head from "next/head";
 
 function MyApp({ Component, pageProps }: AppProps) {
-  console.log("main 브랜치");
-  console.log("main main");
   Axios.defaults.baseURL = process.env.NEXT_PUBLIC_BASE_URL + "/api";
   Axios.defaults.withCredentials = true;
 
@@ -15,13 +16,27 @@ function MyApp({ Component, pageProps }: AppProps) {
   const authRoutes = ["/register", "/login"];
   const authRoute = authRoutes.includes(pathname);
 
+  const fetcher = async (url: string) => {
+    try {
+      const res = await axios.get(url);
+      return res.data;
+    } catch (error: any) {
+      throw error.response.data;
+    }
+  };
   return (
-    <AuthProvider>
-      {!authRoute && <NavBar />}
-      <div className={authRoute ? "" : "pt-16"}>
-        <Component {...pageProps} />
-      </div>
-    </AuthProvider>
+    <SWRConfig
+      value={{
+        fetcher,
+      }}
+    >
+      <AuthProvider>
+        {!authRoute && <NavBar />}
+        <div className={authRoute ? "" : "pt-16"}>
+          <Component {...pageProps} />
+        </div>
+      </AuthProvider>
+    </SWRConfig>
   );
 }
 
