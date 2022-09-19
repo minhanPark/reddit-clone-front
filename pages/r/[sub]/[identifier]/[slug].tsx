@@ -1,4 +1,5 @@
 import axios from "axios";
+import classNames from "classnames";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -13,10 +14,12 @@ const PostPage = () => {
   const [newComment, setNewComment] = useState("");
   const { identifier, sub, slug } = router.query;
 
-  const { data: post, error } = useSWR<Post>(
-    identifier && slug ? `/posts/${identifier}/${slug}` : null
-  );
-  const { data: comments } = useSWR<Comment[]>(
+  const {
+    data: post,
+    error,
+    mutate: PostMutate,
+  } = useSWR<Post>(identifier && slug ? `/posts/${identifier}/${slug}` : null);
+  const { data: comments, mutate } = useSWR<Comment[]>(
     identifier && slug ? `/posts/${identifier}/${slug}/comments` : null
   );
   const submitComment = async (event: FormEvent) => {
@@ -26,12 +29,34 @@ const PostPage = () => {
       await axios.post(`/posts/${post?.identifier}/${post?.slug}/comments`, {
         body: newComment,
       });
+      mutate();
       setNewComment("");
     } catch (err) {
       console.error(err);
     }
   };
-  console.log({ comments });
+  const vote = async (value: number, comment?: Comment) => {
+    if (!authenticated) router.push("/login");
+
+    if (
+      (!comment && value === post?.userVote) ||
+      (comment && value === comment.userVote)
+    ) {
+      value = 0;
+    }
+    try {
+      await axios.post("/votes", {
+        identifier,
+        slug,
+        commentIdentifier: comment?.identifier,
+        value,
+      });
+      PostMutate();
+      mutate();
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <div className="flex max-w-5xl px-4 pt-5 mx-auto">
       <div className="w-full md:mr-3 md:w-8/12">
@@ -39,6 +64,52 @@ const PostPage = () => {
           {post && (
             <>
               <div className="flex">
+                {/* 좋아요 싫어요 기능 */}
+                <div className="flex-shrink-0 w-10 py-2 text-center rounded-l">
+                  <div
+                    className="w-6 mx-auto text-gray-400 rounded cursor-pointer hover:bg-gray-300 hover:text-red-500"
+                    onClick={() => vote(1)}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className={classNames("w-6 h-6", {
+                        "text-red-500": post.userVote === 1,
+                      })}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.25 6.75L12 3m0 0l3.75 3.75M12 3v18"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-bold">{post.voteScore}</p>
+                  <div
+                    className="w-6 mx-auto text-gray-400 rounded cursor-pointer hover:bg-gray-300 hover:text-blue-500"
+                    onClick={() => vote(-1)}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className={classNames("w-6 h-6", {
+                        "text-blue-500": post.userVote === -1,
+                      })}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 17.25L12 21m0 0l-3.75-3.75M12 21V3"
+                      />
+                    </svg>
+                  </div>
+                </div>
                 <div className="py-2 pr-2">
                   <div className="flex items-center">
                     <p className="text-xs text-gray-400">
@@ -126,6 +197,52 @@ const PostPage = () => {
               {/* 댓글작성 */}
               {comments?.map((comment) => (
                 <div className="flex" key={comment.identifier}>
+                  {/* 좋아요 싫어요 부분 */}
+                  <div className="flex-shrink-0 w-10 py-2 text-center rounded-l">
+                    <div
+                      className="w-6 mx-auto text-gray-400 rounded cursor-pointer hover:bg-gray-300 hover:text-red-500"
+                      onClick={() => vote(1, comment)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className={classNames("w-6 h-6", {
+                          "text-red-500": comment.userVote === 1,
+                        })}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M8.25 6.75L12 3m0 0l3.75 3.75M12 3v18"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-bold">{comment.voteScore}</p>
+                    <div
+                      className="w-6 mx-auto text-gray-400 rounded cursor-pointer hover:bg-gray-300 hover:text-blue-500"
+                      onClick={() => vote(-1, comment)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className={classNames("w-6 h-6", {
+                          "text-blue-500": comment.userVote === -1,
+                        })}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 17.25L12 21m0 0l-3.75-3.75M12 21V3"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                   <div className="py-2 pr-2">
                     <p className="mb-1 text-xs leading-none">
                       <Link href={`/u/${comment.username}`}>
