@@ -10,7 +10,8 @@ import axios from "axios";
 
 interface PostCardProps {
   post: Post;
-  subMutate: () => void;
+  subMutate?: () => void;
+  mutate?: () => void;
 }
 
 const PostCard = ({
@@ -28,12 +29,12 @@ const PostCard = ({
     username,
     sub,
   },
+  mutate,
   subMutate,
 }: PostCardProps) => {
   const { authenticated } = useAuthState();
   const router = useRouter();
   const isInSubPage = router.pathname === "/r/[sub]";
-  console.log("router.pathname", router.pathname);
   const vote = async (value: number) => {
     if (!authenticated) router.push("/login");
 
@@ -45,6 +46,9 @@ const PostCard = ({
         slug,
         value,
       });
+      if (mutate) {
+        mutate();
+      }
       if (subMutate) {
         subMutate();
       }
@@ -124,7 +128,7 @@ const PostCard = ({
         )}
         <p className="text-xs text-gray-400">
           Posted by{" "}
-          <Link href={`/r/${username}`}>
+          <Link href={`/u/${username}`}>
             <a className="mx-1 hover:underline">/u/{username}</a>
           </Link>
           <Link href={url}>
